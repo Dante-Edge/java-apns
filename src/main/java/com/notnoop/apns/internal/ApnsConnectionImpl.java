@@ -239,8 +239,15 @@ public class ApnsConnectionImpl implements ApnsConnection {
     }
 
     public synchronized void sendMessage(ApnsNotification m, boolean fromBuffer) throws NetworkIOException {
+    	sendWithoutDrainBuffer(m, fromBuffer);
 
-        int attempts = 0;
+        while(!notificationsBuffer.isEmpty()) {
+            sendMessage(notificationsBuffer.poll(), true);
+        }
+    }
+    
+    private void sendWithoutDrainBuffer(ApnsNotification m, boolean fromBuffer) throws NetworkIOException{
+    	int attempts = 0;
         while (true) {
             try {
                 attempts++;
@@ -254,7 +261,6 @@ public class ApnsConnectionImpl implements ApnsConnection {
                 logger.debug("Message \"{}\" sent", m);
 
                 attempts = 0;
-                drainBuffer();
                 break;
             } catch (Exception e) {
                 Utilities.close(socket);
